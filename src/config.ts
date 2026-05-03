@@ -17,11 +17,14 @@ export const CONFIG = {
     date: 'June 2026',
   },
   COLORS: {
-    bg: '#0B0B0C',
-    paper: '#FEFCF5',
-    envelope: '#1C1C1E',
+    bg: '#1C1815',
+    paper: '#fdf8f0',
+    envelope: '#f5f0e8',
     gold: '#D4AF37',
-    text: '#1A1A1A',
-    secondaryText: '#5E5E5E',
+    text: '#2C2420',
+    secondaryText: '#8B7D6B',
+    airmailBlue: '#4A90D9',
+    airmailRed: '#C0392B',
+    dust: '#E8D5B0',
   }
 };

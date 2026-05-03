@@ -2,24 +2,39 @@
 
 @theme {
   /* --- CUSTOMIZABLE AREA START --- */
-  /* Colors */
-  --color-paper: #F8F5F2;          /* Letter background */
-  --color-night: #0B0B0D;          /* App background */
-  --color-envelope: #1C1C1E;       /* Envelope cover */
-  --color-text: #1A1A1A;           /* Primary text */
-  --color-secondary-text: #5E5E5E; /* Ending/Date text */
-  --color-gold: #C5A059;           /* Icons and accents */
-  --color-accent: #795548;         /* Greeting color (Classic Brown) */
+  /* Colors — Darkroom / Warm Desk palette */
+  --color-night: #1C1815;          /* App background — dark wooden desk */
+  --color-paper: #fdf8f0;          /* Letter paper — warm cream */
+  --color-envelope: #f5f0e8;       /* Airmail envelope body */
+  --color-text: #2C2420;           /* Primary text — warm dark */
+  --color-secondary-text: #8B7D6B; /* Ending/Date text — muted brown */
+  --color-gold: #D4AF37;           /* Icons and accents — warm gold */
+  --color-accent: #6B4226;         /* Greeting color — saddle brown */
+  --color-airmail-blue: #4A90D9;   /* Airmail stripe blue */
+  --color-airmail-red: #C0392B;    /* Airmail stripe red */
+  --color-dust: #E8D5B0;           /* Floating dust particles */
   
-  /* Fonts - System fonts optimized for speed/localization */
+  /* Fonts — System fonts optimized for speed/localization */
   --font-sans: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Georgia", "Source Han Serif SC", "Source Han Serif CN", serif;
+  --font-handwrite: "Segoe Script", "Comic Sans MS", "PingFang SC", cursive, sans-serif;
   /* --- CUSTOMIZABLE AREA END --- */
 }
 
 :root {
   background-color: var(--color-night);
-  color: white;
+  color: var(--color-text);
+
+  /* Darkroom vignette overlay */
+  --vignette: radial-gradient(
+    ellipse 70% 60% at 50% 50%,
+    transparent 40%,
+    rgba(12, 10, 8, 0.5) 100%
+  );
+
+  /* SVG noise textures (base64 inline) */
+  --noise-paper: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  --noise-desk: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
 }
 
 body {
@@ -68,30 +83,77 @@ body {
   pointer-events: none;
 }
 
+/* Desk surface texture */
+.desk-surface {
+  position: fixed;
+  inset: 0;
+  background-color: var(--color-night);
+  background-image: var(--noise-desk);
+  z-index: -1;
+}
+
+/* Darkroom vignette overlay */
+.vignette-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--vignette);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Paper texture for letter/photos */
+.paper-texture {
+  background-image: var(--noise-paper);
+}
+
 /* Decorations */
-.decor-corner {
+/* Airmail stripe pattern (for envelope borders) */
+.airmail-border-top,
+.airmail-border-bottom {
+  height: 12px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-airmail-blue),
+    var(--color-airmail-blue) 6px,
+    transparent 6px,
+    transparent 12px
+  ),
+  repeating-linear-gradient(
+    45deg,
+    var(--color-airmail-red),
+    var(--color-airmail-red) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  background-blend-mode: normal;
+  position: relative;
+}
+
+.airmail-border-top::after,
+.airmail-border-bottom::before {
+  content: '';
   position: absolute;
-  width: 300px;
-  height: 300px;
-  transition: all 1s ease-in-out;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-airmail-blue),
+    var(--color-airmail-blue) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  opacity: 0.6;
 }
 
-.decor-tl {
-  top: -50px;
-  left: -50px;
-  transform: rotate(0deg) scale(1);
-}
-
-.decor-br {
-  bottom: -50px;
-  right: -50px;
-  transform: rotate(0deg) scale(1.2);
-}
-
-@media (max-width: 768px) {
-  .decor-corner {
-    width: 150px;
-    height: 150px;
-  }
+/* Airmail text label */
+.airmail-label {
+  color: var(--color-airmail-blue);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  opacity: 0.7;
 }
 
