@@ -1,0 +1,720 @@
+/* ============================================================
+   style.css — 朱砂印风格信封贺卡样式表
+
+   设计规范（方案2·朱砂印）：
+   颜色白名单：#101010（背景）#f5efe6（纸色）#b3241c（朱砂）#d4af37（金粉）
+   信封结构：参照 deltafrogtechnology/envelope-animation 3D 实现
+   粒子：tsParticles CDN 金粉效果
+   火漆：纯 CSS radial-gradient + 篆体字 ebas927.ttf
+   纹理：SVG feTurbulence 宣纸效果
+
+   模块划分：
+   1. 基础重置与全局样式
+   2. 粒子容器
+   3. 布局容器
+   4. 阶段切换动画
+   5. 信封 3D 结构（envelope-animation 风格）
+   6. 信封翻盖
+   7. 信封内信纸预览
+   8. 火漆印章
+   9. 信件阅读区
+   10. 信纸内容样式
+   11. 打字光标
+   12. 落款
+   13. 音乐按钮
+   14. 关键帧动画
+   15. 响应式适配
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   1. 基础重置与全局样式
+------------------------------------------------------------ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #101010;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ------------------------------------------------------------
+   2. 粒子容器
+   tsParticles 挂载点，固定全屏覆盖，位于最底层，不可交互
+------------------------------------------------------------ */
+.particles-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+
+/* ------------------------------------------------------------
+   3. 布局容器
+   .bw  - 全屏视口容器
+   .bc  - 阶段容器（居中显示各阶段内容）
+------------------------------------------------------------ */
+.bw {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bc {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+
+/* ------------------------------------------------------------
+   4. 阶段切换动画
+   .ph      - 隐藏态：完全不可见、不可交互
+   .ple     - 信封淡出动画（向上升起并消失）
+   .pen     - 信件淡入动画（从下方进入）
+   .ep      - 信封进入动画（页面加载时的初始动画）
+------------------------------------------------------------ */
+.ph {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.ple {
+  animation: fadeOutUp 0.5s ease forwards;
+}
+
+.pen {
+  animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
+}
+
+.ep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  animation: fadeIn 1.2s ease 0.3s both;
+}
+
+
+/* ------------------------------------------------------------
+   5. 信封 3D 结构（参照 deltafrogtechnology/envelope-animation）
+
+   结构层级：
+   .envelope-wrapper → 交互层（perspective）
+   .envelope          → 3D 容器（transform-style: preserve-3d）
+   .envelope__face    → 正面/背面（backface-visibility: hidden）
+   .envelope__face--front → 信封正面（可见面）
+   .envelope__face--back  → 信封背面（隐藏面，旋转后可见）
+
+   颜色：信封主体使用朱砂暗色调，与 #101010 背景融合
+------------------------------------------------------------ */
+
+/* 交互层 — 提供 3D 透视 */
+.envelope-wrapper {
+  perspective: 800px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.envelope-wrapper:focus-visible .envelope {
+  outline: 2px solid #d4af37;
+  outline-offset: 8px;
+  border-radius: 4px;
+}
+
+/* 3D 容器 — 所有子元素共享 3D 空间 */
+.envelope {
+  position: relative;
+  width: 300px;
+  height: 210px;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 信封开启后整体翻转（rotationY 0→180deg） */
+.envelope.opened {
+  transform: rotateY(180deg);
+}
+
+/* 3D 面 — 正反面切换基础 */
+.envelope__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+/* 正面 — 信封关闭时的可见面 */
+.envelope__face--front {
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    #1a1a1a 0%,
+    #151515 30%,
+    #121212 100%
+  );
+  border-radius: 0 0 6px 6px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 20px 48px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* 正面顶部金色装饰线 */
+.envelope__face--front::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #d4af37 15%,
+    #e8c84a 50%,
+    #d4af37 85%,
+    transparent 100%
+  );
+  z-index: 3;
+  opacity: 0.7;
+}
+
+/* 正面底部金色装饰线 */
+.envelope__face--front::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 175, 55, 0.25) 50%,
+    transparent 100%
+  );
+  z-index: 3;
+}
+
+/* 背面 — 翻转后可见 */
+.envelope__face--back {
+  z-index: 1;
+  transform: rotateY(180deg);
+  background: linear-gradient(
+    180deg,
+    #181818 0%,
+    #141414 50%,
+    #111111 100%
+  );
+  border-radius: 0 0 6px 6px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* 提示文字 — 呼吸闪烁，使用金色调 */
+.hint-text {
+  font-family: 'Noto Serif SC', serif;
+  color: rgba(212, 175, 55, 0.35);
+  font-size: 13px;
+  letter-spacing: 6px;
+  animation: breathe 3s ease-in-out infinite;
+}
+
+
+/* ------------------------------------------------------------
+   6. 信封翻盖（参照 envelope-animation 的封盖结构）
+
+   .envelope__flap     - 翻盖基础（三角形，clip-path 实现）
+   .envelope__flap.open - 打开状态：rotationX 0→-150deg
+------------------------------------------------------------ */
+.envelope__flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56%;
+  transform-origin: top center;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 4;
+}
+
+/* 打开状态：翻盖向信封内部翻转 -150 度 */
+.envelope__flap.open {
+  transform: rotateX(-150deg);
+}
+
+/* 翻盖外层 — 深色三角面 */
+.envelope__flap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 50% 100%, 100% 0);
+  background: linear-gradient(
+    180deg,
+    #1c1c1c 0%,
+    #181818 50%,
+    #151515 100%
+  );
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 翻盖外层金色描边 */
+.envelope__flap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 50% 100%, 100% 0);
+  background: linear-gradient(
+    180deg,
+    rgba(212, 175, 55, 0.3) 0%,
+    rgba(212, 175, 55, 0.1) 100%
+  );
+  z-index: 1;
+}
+
+
+/* ------------------------------------------------------------
+   7. 信封内信纸预览
+   从信封正面可见的模拟信纸，包含装饰横线
+   .letter-preview        - 信纸基础样式
+   .letter-preview.reveal - 展开状态：向上滑出
+   .letter-lines          - 横线列表
+   .line                  - 单条横线
+------------------------------------------------------------ */
+.letter-preview {
+  position: absolute;
+  top: 12%;
+  left: 8%;
+  right: 8%;
+  height: 78%;
+  background: #f5efe6;
+  border-radius: 3px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 16px;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.5s ease;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 信纸滑出效果 */
+.letter-preview.reveal {
+  transform: translateY(-40px);
+  opacity: 0.7;
+}
+
+.letter-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.letter-lines .line {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.06) 100%
+  );
+  border-radius: 1px;
+}
+
+
+/* ------------------------------------------------------------
+   8. 火漆印章（朱砂印风格）
+
+   纯 CSS 实现，不使用图片
+   - 直径 48px
+   - radial-gradient: #c63a2f → #b3241c
+   - 内阴影增强质感
+   - 篆体字体 EBAS927 显示"阅"字
+   - 边缘不规则效果通过 box-shadow 模拟
+------------------------------------------------------------ */
+.wax-seal {
+  position: absolute;
+  bottom: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    #c63a2f 0%,
+    #b3241c 50%,
+    #9a1d15 100%
+  );
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 -1px 2px rgba(255, 200, 200, 0.15);
+  /* 微妙的边缘不规则效果 */
+  border: 1px solid rgba(154, 29, 21, 0.6);
+}
+
+/* 篆体"阅"字 */
+.seal-text {
+  font-family: 'EBAS927', serif;
+  font-size: 22px;
+  color: rgba(255, 220, 200, 0.85);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+  user-select: none;
+}
+
+
+/* ------------------------------------------------------------
+   9. 信件阅读区
+   .letter-container       - 信件居中容器（可垂直滚动）
+   .letter-paper           - 信纸主体（宣纸质感，带展开动画）
+   .letter-paper.expanded  - 展开状态：解除 max-height 限制
+   .paper-texture          - 宣纸纹理叠加层（SVG feTurbulence）
+------------------------------------------------------------ */
+.letter-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.letter-paper {
+  position: relative;
+  background: #f5efe6;
+  max-width: 520px;
+  width: 100%;
+  padding: 48px 40px;
+  border-radius: 4px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 16px 48px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  /* 初始折叠状态，配合 expanded 类展开 */
+  max-height: 120px;
+  transition: max-height 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.letter-paper.expanded {
+  max-height: 1500px;
+}
+
+/* 宣纸纹理叠加层 — SVG feTurbulence 滤镜 */
+.paper-texture {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='2' stitchTiles='stitch' result='noise'/%3E%3CfeDiffuseLighting in='noise' lighting-color='%23f5efe6' surfaceScale='2' result='light'%3E%3CfeDistantLight azimuth='45' elevation='55'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23paper)'/%3E%3C/svg%3E");
+  background-size: 400px 400px;
+}
+
+
+/* ------------------------------------------------------------
+   10. 信纸内容样式
+   .letter-greeting     - 称谓文本
+   .letter-paragraphs   - 段落列表容器
+   .letter-paragraph    - 单个段落（初始隐藏，.vis 类触发淡入）
+------------------------------------------------------------ */
+.letter-greeting {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 20px;
+  color: #2c2c2c;
+  margin: 0 0 28px;
+  min-height: 36px;
+  line-height: 1.8;
+  position: relative;
+  z-index: 1;
+}
+
+.letter-paragraphs {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.letter-paragraph {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 16px;
+  color: #3a3a3a;
+  line-height: 2;
+  text-indent: 2em;
+  margin: 0;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.letter-paragraph.vis {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+/* ------------------------------------------------------------
+   11. 打字光标
+   闪烁的竖线，跟随打字动画实时显示与移除
+------------------------------------------------------------ */
+.typing-cursor {
+  display: inline-block;
+  animation: blink 0.7s step-end infinite;
+  font-weight: 100;
+  color: #b3241c;
+  margin-left: 2px;
+}
+
+
+/* ------------------------------------------------------------
+   12. 落款
+   .letter-closing    - 落款容器（初始隐藏）
+   .closing-name      - 落款名称
+   .closing-date      - 落款日期（Ma Shan Zheng 手写体）
+------------------------------------------------------------ */
+.letter-closing {
+  margin-top: 36px;
+  text-align: right;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.letter-closing.vis {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.closing-name {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 16px;
+  color: #3a3a3a;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.closing-date {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 15px;
+  color: #666;
+  margin: 4px 0 0;
+}
+
+
+/* ------------------------------------------------------------
+   13. 音乐按钮
+   .bgm-btn           - 圆形按钮（初始隐藏）
+   .bgm-btn.vis       - 显示状态
+   .bgm-icon          - 音符图标
+   .bgm-icon.playing  - 播放状态（朱砂色 + 旋转动画）
+------------------------------------------------------------ */
+.bgm-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  background: rgba(245, 239, 230, 0.85);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+  z-index: 10;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.bgm-btn.vis {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.bgm-btn:hover {
+  background: rgba(245, 239, 230, 1);
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+.bgm-icon {
+  font-size: 15px;
+  line-height: 1;
+  color: #999;
+  transition: color 0.3s ease;
+}
+
+.bgm-icon.playing {
+  color: #b3241c;
+  animation: spin 3s linear infinite;
+}
+
+
+/* ------------------------------------------------------------
+   14. 关键帧动画
+   - fadeIn:       通用淡入（从下方）
+   - fadeInUp:     信件阶段淡入
+   - fadeOutUp:    信封阶段淡出（向上）
+   - breathe:      提示文字呼吸闪烁
+   - blink:        打字光标闪烁
+   - spin:         音乐图标旋转
+------------------------------------------------------------ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.65; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+
+/* ------------------------------------------------------------
+   15. 响应式适配
+
+   平板/小屏（<= 640px）：
+   - 信封缩小为 260×182
+   - 火漆印章缩小
+   - 信纸内边距缩减
+   - 字号微调
+
+   极小屏（<= 380px）：
+   - 信封进一步缩小为 230×161
+   - 信纸内边距继续缩减
+   - 字号再次微调
+------------------------------------------------------------ */
+@media (max-width: 640px) {
+  .envelope {
+    width: 260px;
+    height: 182px;
+  }
+  .wax-seal {
+    width: 40px;
+    height: 40px;
+    bottom: 18%;
+  }
+  .seal-text {
+    font-size: 18px;
+  }
+  .letter-container {
+    padding: 16px;
+  }
+  .letter-paper {
+    padding: 36px 28px;
+  }
+  .letter-greeting {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+  .letter-paragraph {
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .closing-name {
+    font-size: 15px;
+  }
+  .hint-text {
+    font-size: 12px;
+    letter-spacing: 4px;
+  }
+}
+
+@media (max-width: 380px) {
+  .envelope {
+    width: 230px;
+    height: 161px;
+  }
+  .letter-paper {
+    padding: 28px 22px;
+  }
+  .letter-greeting {
+    font-size: 16px;
+  }
+  .letter-paragraph {
+    font-size: 14px;
+    line-height: 1.85;
+  }
+}
