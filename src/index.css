@@ -1,159 +1,229 @@
-@import "tailwindcss";
-
-@theme {
-  /* --- CUSTOMIZABLE AREA START --- */
-  /* Colors — Darkroom / Warm Desk palette */
-  --color-night: #1C1815;          /* App background — dark wooden desk */
-  --color-paper: #fdf8f0;          /* Letter paper — warm cream */
-  --color-envelope: #f5f0e8;       /* Airmail envelope body */
-  --color-text: #2C2420;           /* Primary text — warm dark */
-  --color-secondary-text: #8B7D6B; /* Ending/Date text — muted brown */
-  --color-gold: #D4AF37;           /* Icons and accents — warm gold */
-  --color-accent: #6B4226;         /* Greeting color — saddle brown */
-  --color-airmail-blue: #4A90D9;   /* Airmail stripe blue */
-  --color-airmail-red: #C0392B;    /* Airmail stripe red */
-  --color-dust: #E8D5B0;           /* Floating dust particles */
-  
-  /* Fonts — System fonts optimized for speed/localization */
-  --font-sans: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Georgia", "Source Han Serif SC", "Source Han Serif CN", serif;
-  --font-handwrite: "Segoe Script", "Comic Sans MS", "PingFang SC", cursive, sans-serif;
-  /* --- CUSTOMIZABLE AREA END --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 :root {
-  background-color: var(--color-night);
-  color: var(--color-text);
+  /* Darkroom wood desk */
+  --bg-desk: #1C1815;
+  --bg-desk-light: #2A2420;
 
-  /* Darkroom vignette overlay */
-  --vignette: radial-gradient(
-    ellipse 70% 60% at 50% 50%,
-    transparent 40%,
-    rgba(12, 10, 8, 0.5) 100%
-  );
+  /* Paper tones */
+  --paper-warm: #fdf8f0;
+  --paper-envelope: #fdfaf5;
 
-  /* SVG noise textures (base64 inline) */
-  --noise-paper: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  --noise-desk: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+  /* Airmail colors */
+  --airmail-red: #E63946;
+  --airmail-blue: #457B9D;
+  --airmail-navy: #1A4780;
+
+  /* Accent gold */
+  --gold: #D4AF37;
+  --gold-dim: rgba(212, 175, 55, 0.3);
+  --gold-muted: rgba(212, 175, 55, 0.7);
+
+  /* Text */
+  --text-brown: #6B4226;
+  --text-dark: #2C2420;
+  --text-muted: #8B7D6B;
+  --text-caption: rgba(139, 125, 107, 0.6);
+
+  /* Shadows */
+  --shadow-paper: 0 4px 20px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.15);
+  --shadow-photo: 0 2px 12px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-body {
-  margin: 0;
-  overflow-x: hidden;
-  font-family: var(--font-sans);
+html, body {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg-desk);
+  font-family: Georgia, 'Source Han Serif SC', 'Noto Serif SC', serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-::-webkit-scrollbar {
-  display: none;
+/* 全屏时也填满 */
+:fullscreen {
+  background: var(--bg-desk);
+}
+:fullscreen html, :fullscreen body, :fullscreen #root {
+  width: 100%;
+  height: 100dvh;
 }
 
-/* Hide scrollbar for IE, Edge and Firefox */
-* {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+#root {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 
-@keyframes slow-rotate {
+/* Scene container — full viewport */
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: visible;
+}
+
+/* Vignette overlay */
+.vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, transparent 40%, rgba(12, 10, 8, 0.5) 100%);
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Airmail stripe pattern */
+.airmail-stripe {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      var(--airmail-red) 0, var(--airmail-red) 12px,
+      #fff 12px, #fff 24px,
+      var(--airmail-blue) 24px, var(--airmail-blue) 36px,
+      #fff 36px, #fff 49px
+    );
+}
+
+/* Warm star particles */
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--gold);
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 calc(var(--size) * 2) calc(var(--size) * 0.5) rgba(212, 175, 55, var(--glow-alpha, 0.3));
+  animation: twinkle var(--duration) var(--delay) ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: var(--max-opacity); transform: scale(1.2); }
+}
+
+/* 浮尘漂移动画 */
+.dust {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  animation: float-dust var(--duration) var(--delay) ease-in-out infinite;
+}
+
+@keyframes float-dust {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.8);
+  }
+  20% {
+    opacity: var(--max-opacity);
+  }
+  50% {
+    opacity: var(--max-opacity);
+    transform: translate(var(--drift-x, 10px), var(--drift-y, -20px)) scale(1);
+  }
+  80% {
+    opacity: var(--max-opacity);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--drift-x, 10px) * 1.5), calc(var(--drift-y, -20px) * 0.5)) scale(0.6);
+  }
+}
+
+/* Polaroid caption style */
+.polaroid-caption {
+  margin-top: 4px;
+  font-size: clamp(8px, 2.2vw, 11px);
+  color: var(--text-caption);
+  font-family: 'Georgia', cursive;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Photo inner area */
+.photo-inner {
+  width: 100%;
+  background: #c4b5a0;
+  border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.photo-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Tap hint animation */
+.tap-hint {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes music-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes vinyl-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-.animate-slow-rotate {
-  animation: slow-rotate 8s linear infinite;
+/* Markdown 渲染样式 */
+.md-body h1, .md-body h2, .md-body h3 {
+  color: var(--text-brown);
+  margin: 0.8em 0 0.4em;
+  font-weight: 600;
 }
-
-.pause-animation {
-  animation-play-state: paused !important;
+.md-body h1 { font-size: 1.3em; }
+.md-body h2 { font-size: 1.15em; }
+.md-body h3 { font-size: 1.05em; }
+.md-body p { margin: 0.3em 0; }
+.md-body strong { color: var(--text-brown); font-weight: 700; }
+.md-body em { font-style: italic; color: var(--text-muted); }
+.md-body a { color: var(--airmail-blue); text-decoration: underline; }
+.md-body blockquote {
+  border-left: 3px solid var(--gold-dim);
+  padding-left: 12px;
+  margin: 0.5em 0;
+  color: var(--text-muted);
+  font-style: italic;
 }
-
-.markdown-body {
-  font-family: var(--font-sans);
-  line-height: 1.65;
+.md-body ul, .md-body ol {
+  padding-left: 1.5em;
+  margin: 0.3em 0;
 }
-
-/* Custom transitions for envelope and stars */
-.stars-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
+.md-body li { margin: 0.2em 0; }
+.md-body hr {
+  border: none;
+  height: 1px;
+  background: var(--gold-dim);
+  margin: 1em 0;
 }
-
-/* Desk surface texture */
-.desk-surface {
-  position: fixed;
-  inset: 0;
-  background-color: var(--color-night);
-  background-image: var(--noise-desk);
-  z-index: -1;
+.md-body code {
+  background: rgba(107, 66, 38, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
 }
-
-/* Darkroom vignette overlay */
-.vignette-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--vignette);
-  pointer-events: none;
-  z-index: 1;
+.md-body img {
+  max-width: 100%;
+  border-radius: 4px;
 }
-
-/* Paper texture for letter/photos */
-.paper-texture {
-  background-image: var(--noise-paper);
-}
-
-/* Decorations */
-/* Airmail stripe pattern (for envelope borders) */
-.airmail-border-top,
-.airmail-border-bottom {
-  height: 12px;
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--color-airmail-blue),
-    var(--color-airmail-blue) 6px,
-    transparent 6px,
-    transparent 12px
-  ),
-  repeating-linear-gradient(
-    45deg,
-    var(--color-airmail-red),
-    var(--color-airmail-red) 6px,
-    transparent 6px,
-    transparent 12px
-  );
-  background-blend-mode: normal;
-  position: relative;
-}
-
-.airmail-border-top::after,
-.airmail-border-bottom::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: repeating-linear-gradient(
-    45deg,
-    var(--color-airmail-blue),
-    var(--color-airmail-blue) 6px,
-    transparent 6px,
-    transparent 12px
-  );
-  opacity: 0.6;
-}
-
-/* Airmail text label */
-.airmail-label {
-  color: var(--color-airmail-blue);
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-

@@ -1,45 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Music, Music2 } from 'lucide-react';
-import { toggleBGM } from '../services/player';
+import { useState, useRef, useEffect } from 'react'
 
 interface MusicButtonProps {
-  className?: string;
-  delay?: number;
+  bgmUrl?: string
 }
 
-const MusicButton: React.FC<MusicButtonProps> = ({ className = "", delay = 0 }) => {
-  const [isPlaying, setIsPlaying] = useState(true);
+// 音乐播放按钮 — 小圆按钮，放在信纸左下角
+export default function MusicButton({ bgmUrl }: MusicButtonProps) {
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  const handleToggle = () => {
-    toggleBGM();
-    setIsPlaying(!isPlaying);
-  };
+  // 初始化 Audio 对象
+  useEffect(() => {
+    if (bgmUrl) {
+      audioRef.current = new Audio(bgmUrl)
+      audioRef.current.loop = true
+      audioRef.current.volume = 0.6
+    }
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+    }
+  }, [bgmUrl])
+
+  const toggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!audioRef.current) return
+
+    if (playing) {
+      audioRef.current.pause()
+    } else {
+      audioRef.current.play().catch(() => { /* 浏览器阻止自动播放 */ })
+    }
+    setPlaying(!playing)
+  }
+
+  // 无 BGM URL 时不显示按钮（兼容旧版 token.js）
+  if (!bgmUrl) return null
 
   return (
-    <motion.button
-      onClick={handleToggle}
-      className={`relative w-10 h-10 border border-gold rounded-full flex items-center justify-center bg-paper group hover:bg-gold/10 transition-all shadow-md active:scale-95 ${className}`}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay, type: "spring", stiffness: 200 }}
+    <div
+      onClick={toggle}
+      style={{
+        position: 'absolute',
+        bottom: 'clamp(8px, 2vw, 14px)',
+        left: 'clamp(8px, 2vw, 14px)',
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        background: playing
+          ? 'rgba(212, 175, 55, 0.2)'
+          : 'rgba(255, 255, 255, 0.1)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        zIndex: 20,
+        transition: 'background 0.3s ease',
+        border: '1px solid rgba(212, 175, 55, 0.3)',
+      }}
     >
-      <div className={`relative flex items-center justify-center text-accent/60 group-hover:text-accent animate-slow-rotate ${!isPlaying ? 'pause-animation' : ''}`}>
-        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
-          <path d="M287-167q-47-47-47-113t47-113q47-47 113-47 23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47q-66 0-113-47Z"/>
+      {playing ? (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(212, 175, 55, 0.8)">
+          <rect x="6" y="4" width="4" height="16" rx="1" />
+          <rect x="14" y="4" width="4" height="16" rx="1" />
         </svg>
-      </div>
-      
-      {/* Outer pulsing ring while playing */}
-      {isPlaying && (
-        <motion.div 
-          className="absolute inset-0 border border-gold/40 rounded-full"
-          animate={{ scale: [1, 1.4], opacity: [0.3, 0] }}
-          transition={{ repeat: Infinity, duration: 2, ease: "easeOut" }}
-        />
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(212, 175, 55, 0.8)">
+          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+        </svg>
       )}
-    </motion.button>
-  );
-};
 
-export default MusicButton;
+      {playing && (
+        <div style={{
+          position: 'absolute',
+          inset: -4,
+          borderRadius: '50%',
+          border: '1px solid rgba(212, 175, 55, 0.3)',
+          animation: 'music-pulse 2s ease-out infinite',
+        }} />
+      )}
+    </div>
+  )
+}

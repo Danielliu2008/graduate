@@ -1,87 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import Stars from './components/Stars';
-import Envelope from './components/Envelope';
-import Letter from './components/Letter';
-import { initPlayer, startBGM } from './services/player';
-import { LETTER_TOKENS } from './tokens';
+import { useState, useCallback } from 'react'
+import { motion } from 'framer-motion'
+import Letter from './components/Letter'
+import Photo from './components/Photo'
+import EnvelopeContent from './components/EnvelopeInitial'
+import Stars from './components/Stars'
+import VinylPlayer from './components/VinylPlayer'
+import { DEFAULT_DATA, envelopeText } from './tokens'
 
-export default function App() {
-  const [stage, setStage] = useState<'idle' | 'opening' | 'reading'>('idle');
-  const [dataReady, setDataReady] = useState(false);
-  const [config, setConfig] = useState<LetterConfig>(LETTER_TOKENS);
+type Phase = 'envelope' | 'transitioning' | 'reading'
 
-  useEffect(() => {
-    initPlayer();
+function App() {
+  const [phase, setPhase] = useState<Phase>('envelope')
+  const [musicPlaying, setMusicPlaying] = useState(false)
 
-    // Check if data is already loaded or wait for it
-    const checkData = () => {
-      const globalData = (window as any).LETTER_DATA;
-      if (globalData) {
-        setConfig(globalData);
-        setDataReady(true);
-        return true;
-      }
-      return false;
-    };
+  const handleOpen = useCallback(() => {
+    try {
+      const el = document.documentElement as any
+      if (el.requestFullscreen) el.requestFullscreen()
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen()
+      else if (el.mozRequestFullScreen) el.mozRequestFullScreen()
+    } catch { /* 忽略全屏失败 */ }
 
-    if (!checkData()) {
-      const interval = setInterval(() => {
-        if (checkData()) clearInterval(interval);
-      }, 50);
-      
-      // Extended timeout for slow network loading of t.js
-      const timeout = setTimeout(() => {
-        clearInterval(interval);
-      }, 10000);
-
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timeout);
-      };
+    setPhase('transitioning')
+    setMusicPlaying(true)
+    // 尝试自动播放 BGM
+    if (DEFAULT_DATA.bgm) {
+      try {
+        const a = new Audio(DEFAULT_DATA.bgm)
+        a.loop = true
+        a.volume = 0.6
+        a.play().catch(() => {})
+      } catch { /* 浏览器阻止 */ }
     }
-  }, []);
+    setTimeout(() => setPhase('reading'), 2400)
+  }, [])
 
-  const handleOpen = () => {
-    if (stage !== 'idle') return;
-    
-    startBGM();
-    setStage('opening');
-    
-    setTimeout(() => {
-      setStage('reading');
-    }, 3200); 
-  };
-
-  if (!dataReady && !LETTER_TOKENS.greeting) {
-    return (
-      <main className="min-h-screen bg-night flex items-center justify-center">
-        <Stars />
-        <div className="text-gold font-serif animate-pulse tracking-widest text-sm uppercase opacity-50">
-          Loading Letter...
-        </div>
-      </main>
-    );
-  }
+  const toggleMusic = useCallback(() => {
+    setMusicPlaying(p => !p)
+  }, [])
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-start md:justify-center p-6 bg-night overflow-x-hidden overflow-y-auto selection:bg-gold/30">
-      <Stars />
-      
-      {stage !== 'reading' ? (
-        <div className="flex-1 flex items-center justify-center">
-          <Envelope onOpen={handleOpen} isOpened={stage === 'opening'} />
+    <>
+      <div className="vignette" />
+
+      <div className="scene">
+        <Stars />
+
+        <VinylPlayer playing={musicPlaying} onToggle={toggleMusic} />
+
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10,
+          pointerEvents: phase === 'envelope' ? 'auto' : 'none',
+        }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={
+              phase === 'envelope'
+                ? { x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 }
+                : { x: '-2vw', y: '35dvh', opacity: 0.85, scale: 1, rotate: -3 }
+            }
+            transition={
+              phase === 'envelope'
+                ? { duration: 0.5, ease: 'easeOut' }
+                : { duration: 1.2, ease: [0.4, 0, 0.2, 1], delay: 0.8 }
+            }
+            style={{
+              width: 'min(88vw, 420px)',
+              aspectRatio: '4/3',
+            }}
+            data-envelope
+          >
+            <EnvelopeContent
+              flapOpen={phase !== 'envelope'}
+              onTap={phase === 'envelope' ? handleOpen : undefined}
+              recipientLine1={envelopeText.line1}
+              recipientLine2={envelopeText.line2}
+            />
+
+            {phase === 'envelope' && (
+              <motion.div
+                className="tap-hint"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 }}
+                onClick={handleOpen}
+                style={{
+                  position: 'absolute',
+                  bottom: -36,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  color: 'var(--gold)',
+                  fontSize: 12,
+                  letterSpacing: '0.2em',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                }}
+              >
+                TAP TO OPEN
+              </motion.div>
+            )}
+          </motion.div>
         </div>
-      ) : (
-        <motion.div 
-          className="w-full flex flex-col items-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          <Letter isOpened={true} config={config} />
-        </motion.div>
-      )}
-    </main>
-  );
+
+        {(phase === 'transitioning' || phase === 'reading') && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            overflow: 'visible',
+            transform: 'translateY(-50px)',
+            zIndex: 30,
+          }}>
+            <Photo
+              src={DEFAULT_DATA.photos[0].src}
+              caption={DEFAULT_DATA.photos[0].caption}
+              ratio={DEFAULT_DATA.photos[0].ratio}
+              top="max(6dvh, 30px)"
+              left="68%"
+              width="35%"
+              rotate={11}
+              zIndex={10}
+              delay={0.9}
+              fromCenter
+            />
+
+            <Photo
+              src={DEFAULT_DATA.photos[1].src}
+              caption={DEFAULT_DATA.photos[1].caption}
+              ratio={DEFAULT_DATA.photos[1].ratio}
+              top="max(6dvh, 30px)"
+              left="9%"
+              width="64%"
+              rotate={-9}
+              zIndex={9}
+              delay={1.0}
+              fromCenter
+            />
+
+            <Photo
+              src={DEFAULT_DATA.photos[2].src}
+              caption={DEFAULT_DATA.photos[2].caption}
+              ratio={DEFAULT_DATA.photos[2].ratio}
+              top="max(24dvh, 120px)"
+              left="2%"
+              width="30%"
+              rotate={-15}
+              zIndex={3}
+              delay={1.1}
+              fromCenter
+            />
+
+            <Letter data={DEFAULT_DATA} />
+          </div>
+        )}
+      </div>
+    </>
+  )
 }
+
+export default App

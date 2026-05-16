@@ -1,54 +1,73 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+// ============================================================
+// tokens.ts — 数据层：从 window.__GRAD_DATA__ 读取 token.js 注入的内容
+// 部署时由 index.html 中同步 XHR 加载对应 token.js 后全局注入
+// ============================================================
 
-export interface Paragraph {
-  content: string;
-  showIcon: boolean;
-  delayOffset?: number;
+export interface PhotoData {
+  src: string       // base64 或 URL
+  caption: string   // 宝丽来备注
+  ratio: string     // 宽高比 '3/4' | '16/10' | '2/3'
 }
 
-export interface LetterConfig {
-  token?: string; // Optional simple token check
-  greeting: string;
-  paragraphs: Paragraph[];
-  closing: string;
-  date: string;
-  options?: {
-    typingSpeed?: number;
-    iconDelayBase?: number;
-    textDelayBase?: number;
-  };
+export interface LetterData {
+  greeting: string
+  body: string[]       // 纯文本段落（md 渲染在组件层处理）
+  signoff: string
+  date: string
+  photos: PhotoData[]
+  bgm?: string         // BGM 音频 URL，可选
 }
 
-// Default fallback data if window.LETTER_DATA is not found
-const DEFAULT_DATA: LetterConfig = {
-  greeting: 'Dear Class of 2026,',
-  paragraphs: [
-    {
-      content: '那个迟到被抓的早晨、一起溜去小卖部的课间、还有那摞写满笔记再也不想翻开的课本——高中这三年，我们就这样跌跌撞撞地走了过来。',
-      showIcon: true,
-    },
-    {
-      content: '或许我还没学会怎么好好告别，但我知道，每一段旅程的终点，都是下一程的起点。所以，这次用“明天见”代替“再见”吧。',
-      showIcon: true,
-    },
-    {
-      content: '愿你在六月的考场上落笔生花，愿你的远方明亮而宽广。',
-      showIcon: true,
-    },
-  ],
-  closing: 'From [署名]',
-  date: 'June 2026',
-  options: {
-    typingSpeed: 70,
-    iconDelayBase: 0.6,
-    textDelayBase: 1.0,
+declare global {
+  interface Window {
+    __GRAD_DATA__?: {
+      recipient: string
+      photos: PhotoData[]
+      greeting: string
+      body: string[]
+      signoff: string
+      date: string
+      bgm?: string
+    }
   }
-};
+}
 
-// Access window in a way that doesn't break SSR (though this is SPA)
-const globalData = typeof window !== 'undefined' ? (window as any).LETTER_DATA : null;
+// 从全局数据构建 envelopeText
+function buildEnvelopeText(recipient: string) {
+  return {
+    line1: `${recipient}  敬启`,
+    line2: 'Class of 2026',
+  }
+}
 
-export const LETTER_TOKENS: LetterConfig = globalData || DEFAULT_DATA;
+// 从 window.__GRAD_DATA__ 解析，带硬编码兜底（开发调试用）
+const raw = typeof window !== 'undefined' ? window.__GRAD_DATA__ : undefined
+
+const recipient = raw?.recipient ?? '王小明'
+const photos = raw?.photos ?? [
+  { src: '', caption: 'Summer 2023', ratio: '3/4' },
+  { src: '', caption: 'Graduation Day', ratio: '16/10' },
+  { src: '', caption: 'Goodbye', ratio: '2/3' },
+]
+const greeting = raw?.greeting ?? 'Dear Class of 2026'
+const body = raw?.body ?? [
+  '那个迟到被抓的早晨、一起溜去小卖部的课间、考试前互相划重点的深夜——这些你以为早已忘记的瞬间，其实都悄悄藏在了记忆最柔软的地方。',
+  '谢谢你们，让这段旅程如此闪亮。愿你们前程似锦，万事胜意。',
+  '谢谢你们，让这段旅程如此闪亮。愿你们前程似锦，万事胜意。',
+  '谢谢你们，让这段旅程如此闪亮。愿你们前程似锦，万事胜意。',
+  '谢谢你们，让这段旅程如此闪亮。愿你们前程似锦，万事胜意。',
+]
+const signoff = raw?.signoff ?? '永远怀念的'
+const date = raw?.date ?? '2026.06'
+const bgm = raw?.bgm ?? ''
+
+export const envelopeText = buildEnvelopeText(recipient)
+
+export const DEFAULT_DATA: LetterData = {
+  greeting,
+  body,
+  signoff,
+  date,
+  photos,
+  bgm,
+}
